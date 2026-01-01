@@ -1,0 +1,12 @@
+github.com/alecthomas/assert/v2 v2.11.0 h1:2Q9r3ki8+JYXvGsDyBXwH3LcJ+WK5D0gc5E8vS6K3D0=
+github.com/alecthomas/assert/v2 v2.11.0/go.mod h1:Bze95FyfUr7x34QZrjL+XP+0qgp/zg8yS+TtBj1WA3k=
+github.com/alecthomas/kong v1.13.0 h1:5e/7XC3ugvhP1DQBmTS+WuHtCbcv44hsohMgcvVxSrA=
+github.com/alecthomas/kong v1.13.0/go.mod h1:wrlbXem1CWqUV5Vbmss5ISYhsVPkBb1Yo7YKJghju2I=
+github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs=
+github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
+github.com/bitwarden/sdk-go v1.0.2 h1:krk5et4sfksLDDcrYHcs8f3jL/TGcQ1EShw4CG21JSI=
+github.com/bitwarden/sdk-go v1.0.2/go.mod h1:RuYh+gqffp3h8wNUVWz1bvp2Pho10AFz+WIlI26iWY4=
+github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
+github.com/hexops/gotextdiff v1.0.3/go.mod h1:pSWU5MAI3yDq+fZBTazCSJysOMbxWL1BSow5/V2vxeg=
+github.com/veerendra2/gopackages v1.2.2 h1:pMH35yron3gMOHR/e2BVNGcG+z4vP3HpEpa3plLTWRU=
+github.com/veerendra2/gopackages v1.2.2/go.mod h1:+ZiBLm4SOULJAy35JTQLdH2lNTIy6qOs16eOjosz9Kw=

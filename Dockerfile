@@ -9,6 +9,6 @@ RUN /app/bin/task build
 FROM alpine:3.22.2
 RUN apk update && apk add --no-cache ca-certificates
 WORKDIR /
-COPY --from=BUILDER /app/dist/your-app-name .
+COPY --from=BUILDER /app/dist/komodo-secrets-injector .
 USER nobody
-ENTRYPOINT ["/your-app-name"]
+ENTRYPOINT ["/komodo-secrets-injector"]

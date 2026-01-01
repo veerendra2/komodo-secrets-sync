@@ -3,8 +3,8 @@ version: "3"
 silent: true
 
 vars:
-  MAIN_FILE: /path/to/main.go
-  APP_NAME: your-app-name
+  MAIN_FILE: cmd/main.go
+  APP_NAME: komodo-secrets-injector
   GOPATH_BIN:
     sh: echo "$(go env GOPATH)/bin"
   BRANCH:
@@ -31,7 +31,7 @@ tasks:
       - go run {{.MAIN_FILE}}
     env:
       LOG_FORMAT: console
-      LOG_ADD_SOURCE: false
+      LOG_ADD_SOURCE: true
       LOG_LEVEL: info
 
   lint:
