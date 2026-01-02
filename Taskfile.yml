@@ -4,7 +4,7 @@ silent: true
 
 vars:
   MAIN_FILE: cmd/main.go
-  APP_NAME: komodo-secrets-injector
+  APP_NAME: komodo-secrets-sync
   GOPATH_BIN:
     sh: echo "$(go env GOPATH)/bin"
   BRANCH:
@@ -20,7 +20,7 @@ vars:
 
 env:
   GOBIN: "{{.GOPATH_BIN }}"
-  CGO_ENABLED: 0
+  CGO_ENABLED: 1
 
 tasks:
   run:
@@ -31,7 +31,7 @@ tasks:
       - go run {{.MAIN_FILE}}
     env:
       LOG_FORMAT: console
-      LOG_ADD_SOURCE: true
+      LOG_ADD_SOURCE: false
       LOG_LEVEL: info
 
   lint:

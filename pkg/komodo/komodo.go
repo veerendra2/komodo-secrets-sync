@@ -73,7 +73,11 @@ func (c *client) doRequest(ctx context.Context, typ string, params any) error {
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			slog.Warn("Failed to close response body", "error", err)
+		}
+	}()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -102,7 +106,7 @@ func (c *client) UpsertVariable(ctx context.Context, name string, value string, 
 	err := c.doRequest(ctx, WriteCreateVariable, params)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			slog.Warn("Variable already exists, updating...", "variable", name)
+			slog.Debug("Variable already exists, updating...", "variable", name)
 
 			err = c.UpdateVariableDescription(ctx, name, description)
 			if err != nil {

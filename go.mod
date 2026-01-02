@@ -1,4 +1,4 @@
-module github.com/veerendra2/komodo-secrets-injector
+module github.com/veerendra2/komodo-secrets-sync
 
 go 1.25.5
 

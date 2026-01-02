@@ -1,22 +1,27 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/alecthomas/kong"
 	"github.com/veerendra2/gopackages/slogger"
 	"github.com/veerendra2/gopackages/version"
-	"github.com/veerendra2/komodo-secrets-injector/pkg/komodo"
-	"github.com/veerendra2/komodo-secrets-injector/pkg/secretsmanager"
+	"github.com/veerendra2/komodo-secrets-sync/internal/reconciler"
+	"github.com/veerendra2/komodo-secrets-sync/pkg/komodo"
+	"github.com/veerendra2/komodo-secrets-sync/pkg/secrets"
 )
 
-const appName = "komodo-secrets-injector"
+const appName = "komodo-secrets-sync"
 
 var cli struct {
-	Komodo komodo.Config `embed:"" prefix:"komodo-" envprefix:"KOMODO_"`
+	Komodo     komodo.Config     `embed:"" prefix:"komodo-" envprefix:"KOMODO_"`
+	Reconciler reconciler.Config `embed:"" prefix:"reconciler-" envprefix:"RECONCILER_"`
 
-	Bitwarden secretsmanager.BitwardenConfig `cmd:"" help:"Bitwarden Secrets Manager." group:"Secret Managers" default:""`
+	Bitwarden secrets.BitwardenConfig `cmd:"" help:"Bitwarden Secrets Manager." group:"Secret Managers" default:""`
 
 	Log     slogger.Config   `embed:"" prefix:"log-" envprefix:"LOG_"`
 	Version kong.VersionFlag `name:"version" help:"Print version information and exit"`
@@ -25,7 +30,7 @@ var cli struct {
 func main() {
 	kongCtx := kong.Parse(&cli,
 		kong.Name(appName),
-		kong.Description("A tool to inject secrets into Komodo from a secrets manager."),
+		kong.Description("Sync secrets from a secrets manager into Komodo."),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,
@@ -42,35 +47,38 @@ func main() {
 	slog.Info("Version information", version.Info()...)
 	slog.Info("Build context", version.BuildContext()...)
 
-	// rootCtx := context.Background()
+	// Create context that listens for shutdown signals
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	var secretMgrClient secretsmanager.Client
+	var secretMgrClient secrets.Client
 	var err error
 
 	switch cmd := kongCtx.Command(); cmd {
 	case "bitwarden":
-		secretMgrClient, err = secretsmanager.NewBwClient(cli.Bitwarden)
+		secretMgrClient, err = secrets.NewBitwarden(cli.Bitwarden)
 		if err != nil {
 			slog.Error("Failed to create Bitwarden client", "error", err)
 			kongCtx.Exit(1)
 		}
+	default:
+		slog.Error("No secrets manager specified")
+		kongCtx.Exit(1)
 	}
 
-	value, _ := secretMgrClient.Get("")
-	fmt.Println(value)
-	// ctx, cancel := context.WithTimeout(rootCtx, 5*time.Second)
-	// defer cancel()
+	komodoClient, err := komodo.NewClient(cli.Komodo)
+	if err != nil {
+		slog.Error("Failed to create Komodo client", "error", err)
+		kongCtx.Exit(1)
+	}
 
-	// komodoClient, err := komodo.NewClient(cli.Komodo)
-	// if err != nil {
-	// 	slog.Error("Failed to create Komodo client", "error", err)
-	// 	kongCtx.Exit(1)
-	// }
-
-	// err = komodoClient.UpsertVariable(ctx, "TEST", "test", "this is a test", true)
-	// if err != nil {
-	// 	slog.Error("Failed to create variable", "error", err)
-	// 	kongCtx.Exit(1)
-	// }
-
+	r := reconciler.New(cli.Reconciler, secretMgrClient, komodoClient)
+	if err := r.Run(ctx); err != nil {
+		if err == context.Canceled {
+			slog.Info("Graceful shutdown")
+		} else {
+			slog.Error("Failed to start reconciliation", "error", err)
+			kongCtx.Exit(1)
+		}
+	}
 }
