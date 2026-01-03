@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/veerendra2/komodo-secrets-sync/pkg/komodo"
@@ -14,6 +15,7 @@ import (
 
 type Config struct {
 	Interval time.Duration `name:"interval" help:"Reconcile interval" env:"INTERVAL" default:"5m"`
+	Timeout  time.Duration `name:"timeout" help:"Reconcile timeout" env:"TIMEOUT" default:"1m"`
 }
 
 type Reconciler struct {
@@ -21,14 +23,16 @@ type Reconciler struct {
 	smClient secrets.Client
 	kClient  komodo.Client
 
-	// TODO sync.Map
-	secretsCache map[string]string
+	secretsCache sync.Map
 }
 
 func (r *Reconciler) Run(ctx context.Context) error {
-	slog.Info("Starting reconciliation loop", "interval", r.cfg.Interval)
+	slog.Info("Starting reconciliation loop",
+		"interval", r.cfg.Interval.String(),
+		"timeout", r.cfg.Timeout.String(),
+	)
 
-	// Initial reconciliation at startup
+	// Run initial reconciliation immediately on startup
 	if err := r.reconcile(ctx); err != nil {
 		slog.Error("Initial reconciliation failed", "error", err)
 	}
@@ -39,7 +43,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("Reconciliation stopped")
+			slog.Debug("Reconciliation stopped")
 			return ctx.Err()
 		case <-ticker.C:
 			if err := r.reconcile(ctx); err != nil {
@@ -50,10 +54,9 @@ func (r *Reconciler) Run(ctx context.Context) error {
 }
 
 func (r *Reconciler) reconcile(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, r.cfg.Timeout)
 	defer cancel()
 
-	// Get all secrets
 	secretsCollection, err := r.smClient.FetchAll(ctx)
 	if err != nil {
 		return err
@@ -63,18 +66,28 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	var modified []secrets.Secret
 	for _, secret := range secretsCollection.Secrets {
 		currentHash := hash(secret.Value)
-		cachedHash, exists := r.secretsCache[secret.Key]
 
-		if !exists || cachedHash != currentHash {
+		// Load cached hash from sync.Map
+		cachedValue, exists := r.secretsCache.Load(secret.Key)
+		if !exists {
+			// Secret doesn't exist in cache, it's new
 			modified = append(modified, secret)
-			r.secretsCache[secret.Key] = currentHash
+			r.secretsCache.Store(secret.Key, currentHash)
+		} else {
+			// Secret exists, compare hashes
+			cachedHash, ok := cachedValue.(string)
+			if !ok || cachedHash != currentHash {
+				modified = append(modified, secret)
+				r.secretsCache.Store(secret.Key, currentHash)
+			}
 		}
 	}
 
 	slog.Info("Reconciliation scan", "total", len(secretsCollection.Secrets), "modified", len(modified))
 
-	// Sync modified secrets to Komodo
 	syncTime := time.Now().UTC()
+	successCount := 0
+
 	for _, secret := range modified {
 		syncMsg := fmt.Sprintf("Synced by komodo-secrets-sync at %s", syncTime.Format(time.RFC3339))
 		err := r.kClient.UpsertVariable(ctx, secret.Key, secret.Value, syncMsg, true)
@@ -82,7 +95,12 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			slog.Error("Failed to sync secret", "key", secret.Key, "error", err)
 			continue
 		}
+		successCount++
 		slog.Debug("Secret synced", "key", secret.Key)
+	}
+
+	if len(modified) > 0 {
+		slog.Info("Sync completed", "synced", successCount, "failed", len(modified)-successCount)
 	}
 
 	return nil
@@ -98,6 +116,6 @@ func New(cfg Config, smClient secrets.Client, kClient komodo.Client) *Reconciler
 		cfg:          cfg,
 		smClient:     smClient,
 		kClient:      kClient,
-		secretsCache: make(map[string]string),
+		secretsCache: sync.Map{},
 	}
 }

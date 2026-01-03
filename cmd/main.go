@@ -19,7 +19,7 @@ const appName = "komodo-secrets-sync"
 
 var cli struct {
 	Komodo     komodo.Config     `embed:"" prefix:"komodo-" envprefix:"KOMODO_"`
-	Reconciler reconciler.Config `embed:"" prefix:"reconciler-" envprefix:"RECONCILER_"`
+	Reconciler reconciler.Config `embed:"" prefix:"reconcile-" envprefix:"RECONCILE_"`
 
 	Bitwarden secrets.BitwardenConfig `cmd:"" help:"Bitwarden Secrets Manager." group:"Secret Managers" default:""`
 
@@ -74,7 +74,7 @@ func main() {
 
 	r := reconciler.New(cli.Reconciler, smClient, kClient)
 	if err := r.Run(ctx); err != nil {
-		slog.Error("Reconciliation failed", "error", err)
+		slog.Warn("Reconciliation exited", "error", err)
 		kongCtx.Exit(1)
 	}
 }

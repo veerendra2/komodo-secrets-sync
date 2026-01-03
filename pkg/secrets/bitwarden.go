@@ -54,7 +54,7 @@ func (c *bitwardenClient) FetchAll(ctx context.Context) (*SecretsCollection, err
 	for _, bwSecret := range syncResp.Secrets {
 		// Filter secrets to include only those from the specified project.
 		// The SDK already limits results based on access token permissions.
-		if bwSecret.ProjectID == &c.ProjectId {
+		if bwSecret.ProjectID != nil && *bwSecret.ProjectID == c.ProjectId {
 			secretsCollection.Secrets = append(secretsCollection.Secrets, Secret{
 				Key:   bwSecret.Key,
 				Note:  bwSecret.Note,

@@ -17,23 +17,14 @@ vars:
     sh: git rev-parse HEAD
   VERSION:
     sh: git describe --tags --always
+  COMPILER_CC: '{{if eq OS "linux"}}musl-gcc{{else if eq OS "darwin"}}clang{{end}}'
+  COMPILER_CXX: '{{if eq OS "darwin"}}clang++{{end}}'
 
 env:
   GOBIN: "{{.GOPATH_BIN }}"
   CGO_ENABLED: 1
-  CC:
-    sh: |
-      case "{{.OS}}" in
-        linux) echo "musl-gcc" ;;
-        darwin) echo "clang" ;;
-        *) echo "" ;;
-      esac
-  CXX:
-    sh: |
-      case "{{.OS}}" in
-        darwin) echo "clang++" ;;
-        *) echo "" ;;
-      esac
+  CC: "{{.COMPILER_CC}}"
+  CXX: "{{.COMPILER_CXX}}"
 
 tasks:
   run:
@@ -75,10 +66,15 @@ tasks:
 
   build:
     desc: "Build the application binary for the current platform"
+    vars:
+      LINUX_LDFLAGS: >-
+        {{if eq OS "linux"}}
+        -linkmode external -extldflags '-static -Wl,-unresolved-symbols=ignore-all'
+        {{end}}
     deps:
       - vet
     cmd: |
-      go build -ldflags "\
+      go build -ldflags "{{.LINUX_LDFLAGS}} \
         -X github.com/veerendra2/gopackages/version.Version={{.VERSION}} \
         -X github.com/veerendra2/gopackages/version.Revision={{.REVISION}} \
         -X github.com/veerendra2/gopackages/version.Branch={{.BRANCH}} \

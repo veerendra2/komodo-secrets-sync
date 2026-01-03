@@ -1,14 +1,17 @@
 FROM golang:1.25.5 AS builder
 WORKDIR /app
 RUN curl -sL https://taskfile.dev/install.sh | sh \
-  && apt update && apt install -y musl-tools build-essential gcc musl-dev
-COPY . .
+  && apt update && apt install -y musl-tools
+COPY go.mod go.sum ./
 RUN go mod download
+COPY . .
 RUN /app/bin/task build
 
-FROM alpine:3.23.2
-RUN apk update && apk add --no-cache ca-certificates
+FROM debian:13.2-slim
+RUN apt update \
+    && apt install -y ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /
-COPY --from=builder /app/dist/komodo-secrets-injector .
+COPY --from=builder /app/dist/komodo-secrets-sync .
 USER nobody
-ENTRYPOINT ["/komodo-secrets-injector"]
+ENTRYPOINT ["/komodo-secrets-sync"]

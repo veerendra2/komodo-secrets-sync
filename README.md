@@ -6,7 +6,7 @@ Sync secrets from a secrets manager into [Komodo](https://github.com/moghtech/ko
 
 > **Why?** [Komodo](https://github.com/moghtech/komodo) doesn't natively support fetching secrets from external secrets managers. If you manage your Docker Compose stacks in a GitOps workflow and want to automatically sync secrets from external secrets managers (like HashiCorp Vault, Bitwarden Secrets Manager, etc.) to Komodo, this tool is for you! (Alternatively, you can add secrets manually in the Komodo UI 😉)
 
-![Komdo Secrets Injector](./docs/assets/komodo-secrets-sync.png)
+![Komdo Secrets Sync](./docs/assets/komodo-secrets-sync.png)
 
 ## Features
 
@@ -19,7 +19,7 @@ Sync secrets from a secrets manager into [Komodo](https://github.com/moghtech/ko
 | Secret Manager                                                               | Status       |
 | ---------------------------------------------------------------------------- | ------------ |
 | [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/) | ✅ Supported |
-| [HashiCorp Vault](https://www.vaultproject.io/)                              | 🚧 Planned   |
+| [HashiCorp Vault](https://www.vaultproject.io/)                              | 🚧 Planning  |
 
 ## Quick Start
 
@@ -35,7 +35,8 @@ Flags:
       --komodo-url=STRING           Komodo URL ($KOMODO_URL)
       --komodo-api-key=STRING       Komodo API key ($KOMODO_API_KEY)
       --komodo-api-secret=STRING    Komodo API secret ($KOMODO_API_SECRET)
-      --reconciler-interval=5m      Reconcile interval ($RECONCILER_INTERVAL)
+      --reconcile-interval=5m       Reconcile interval ($RECONCILE_INTERVAL)
+      --reconcile-timeout=1m        Reconcile timeout ($RECONCILE_TIMEOUT)
       --log-format="json"           Set the output format of the logs. Must be "console" or "json" ($LOG_FORMAT).
       --log-level=INFO              Set the log level. Must be "DEBUG", "INFO", "WARN" or "ERROR" ($LOG_LEVEL).
       --log-add-source              Whether to add source file and line number to log records ($LOG_ADD_SOURCE).
@@ -66,12 +67,15 @@ This tool currently supports **Bitwarden Secrets Manager**. Follow the setup gui
 Export environment variables with your credentials:
 
 ```bash
-export KOMODO_API_KEY=REDACTED
-export KOMODO_API_SECRET=REDACTED
-export KOMODO_URL=KOMODO_URL
-export ACCESS_TOKEN=REDACTED
-export PROJECT_ID=REDACTED
-export ORGANIZATION_ID=REDACTED
+# Komodo Configuration
+export KOMODO_API_KEY=<your-komodo-api-key>
+export KOMODO_API_SECRET=<your-komodo-api-secret>
+export KOMODO_URL=<your-komodo-url>
+
+# Bitwarden Secrets Manager Configuration
+export BW_ACCESS_TOKEN=<your-access-token>
+export BW_ORGANIZATION_ID=<your-org-id>
+export BW_PROJECT_ID=<your-project-id>
 ```
 
 ```yaml
@@ -107,17 +111,16 @@ _Install Taskfile: [Installation Guide](https://taskfile.dev/docs/installation)_
 # Available tasks
 task --list
 task: Available tasks for this project:
-* all:                   Run comprehensive checks: format, lint, security and test
-* build:                 Build the application binary for the current platform
-* build-docker:          Build Docker image
-* build-platforms:       Build the application binaries for multiple platforms and architectures
-* fmt:                   Formats all Go source files
-* install:               Install required tools and dependencies
-* lint:                  Run static analysis and code linting using golangci-lint
-* run:                   Runs the main application
-* security:              Run security vulnerability scan
-* test:                  Runs all tests in the project      (aliases: tests)
-* vet:                   Examines Go source code and reports suspicious constructs
+* all:                Run comprehensive checks: format, lint, security and test
+* build:              Build the application binary for the current platform
+* build-docker:       Build Docker image
+* fmt:                Formats all Go source files
+* install:            Install required tools and dependencies
+* lint:               Run static analysis and code linting using golangci-lint
+* run:                Runs the main application
+* security:           Run security vulnerability scan
+* test:               Runs all tests in the project      (aliases: tests)
+* vet:                Examines Go source code and reports suspicious constructs
 ```
 
 - Build with [goreleaser](https://goreleaser.com/)
