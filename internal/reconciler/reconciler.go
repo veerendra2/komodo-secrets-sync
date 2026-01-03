@@ -49,7 +49,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 }
 
 func (r *Reconciler) reconcile(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	// Get all secrets

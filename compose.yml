@@ -2,7 +2,7 @@
 name: komodo-secrets-sync
 services:
   komodo-secrets-sync:
-    image: veerendra2/komodo-secrets-sync:latest
+    image: komodo-secrets-sync:latest
     container_name: komodo-secrets-sync
     environment:
       # Komodo Configuration

@@ -51,12 +51,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	var secretMgrClient secrets.Client
+	var smClient secrets.Client
 	var err error
 
 	switch cmd := kongCtx.Command(); cmd {
 	case "bitwarden":
-		secretMgrClient, err = secrets.NewBitwarden(cli.Bitwarden)
+		smClient, err = secrets.NewBitwarden(cli.Bitwarden)
 		if err != nil {
 			slog.Error("Failed to create Bitwarden client", "error", err)
 			kongCtx.Exit(1)
@@ -66,19 +66,15 @@ func main() {
 		kongCtx.Exit(1)
 	}
 
-	komodoClient, err := komodo.NewClient(cli.Komodo)
+	kClient, err := komodo.NewClient(cli.Komodo)
 	if err != nil {
 		slog.Error("Failed to create Komodo client", "error", err)
 		kongCtx.Exit(1)
 	}
 
-	r := reconciler.New(cli.Reconciler, secretMgrClient, komodoClient)
+	r := reconciler.New(cli.Reconciler, smClient, kClient)
 	if err := r.Run(ctx); err != nil {
-		if err == context.Canceled {
-			slog.Info("Graceful shutdown")
-		} else {
-			slog.Error("Failed to start reconciliation", "error", err)
-			kongCtx.Exit(1)
-		}
+		slog.Error("Reconciliation failed", "error", err)
+		kongCtx.Exit(1)
 	}
 }

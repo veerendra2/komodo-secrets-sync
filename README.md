@@ -1,5 +1,7 @@
 # Komodo Secrets Sync
 
+> 🚧 _Currently in beta._
+
 Sync secrets from a secrets manager into [Komodo](https://github.com/moghtech/komodo) (Currently supports [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/))
 
 > **Why?** [Komodo](https://github.com/moghtech/komodo) doesn't natively support fetching secrets from external secrets managers. If you manage your Docker Compose stacks in a GitOps workflow and want to automatically sync secrets from external secrets managers (like HashiCorp Vault, Bitwarden Secrets Manager, etc.) to Komodo, this tool is for you! (Alternatively, you can add secrets manually in the Komodo UI 😉)
@@ -47,9 +49,9 @@ Run "komodo-secrets-sync <command> --help" for more information on a command.
 
 ### Get Komodo API Access Key
 
-1. Go to Komodo UI → **Settings**
+1. Login to Komodo UI as admin → Navigate to **Settings**
 2. Click on **Profile** tab
-3. Create API keys as shown below:
+3. Click **Create New** to generate API keys as shown below:
 
 ![API Keys](./docs/assets/komodo-api-key.png)
 

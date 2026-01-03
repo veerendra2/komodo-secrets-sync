@@ -21,6 +21,20 @@ vars:
 env:
   GOBIN: "{{.GOPATH_BIN }}"
   CGO_ENABLED: 1
+  CGO_LDFLAGS: -Wl,--no-as-needed
+  CC:
+    sh: |
+      case "{{.OS}}" in
+        linux) echo "musl-gcc" ;;
+        darwin) echo "clang" ;;
+        *) echo "" ;;
+      esac
+  CXX:
+    sh: |
+      case "{{.OS}}" in
+        darwin) echo "clang++" ;;
+        *) echo "" ;;
+      esac
 
 tasks:
   run:
@@ -72,24 +86,6 @@ tasks:
         -X github.com/veerendra2/gopackages/version.BuildUser={{.BUILD_USER}} \
         -X github.com/veerendra2/gopackages/version.BuildDate={{.BUILD_TIME}}" \
         -o dist/{{.APP_NAME}} {{.MAIN_FILE}}
-
-  build-platforms:
-    desc: "Build the application binaries for multiple platforms and architectures"
-    deps:
-      - vet
-    cmds:
-      - for:
-          matrix:
-            OS: ["linux", "darwin"]
-            ARCH: ["amd64", "arm64"]
-        cmd: |
-          GOOS={{.ITEM.OS}} GOARCH={{.ITEM.ARCH}} go build -ldflags "\
-            -X github.com/veerendra2/gopackages/version.Version={{.VERSION}} \
-            -X github.com/veerendra2/gopackages/version.Revision={{.REVISION}} \
-            -X github.com/veerendra2/gopackages/version.Branch={{.BRANCH}} \
-            -X github.com/veerendra2/gopackages/version.BuildUser={{.BUILD_USER}} \
-            -X github.com/veerendra2/gopackages/version.BuildDate={{.BUILD_TIME}}" \
-            -o dist/{{.APP_NAME}}-{{.ITEM.OS}}-{{.ITEM.ARCH}} {{.MAIN_FILE}}
 
   build-docker:
     desc: "Build Docker image"
