@@ -75,7 +75,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	// Sync modified secrets to Komodo
 	syncTime := time.Now().UTC()
 	for _, secret := range modified {
-		syncMsg := fmt.Sprintf("Synced by komodo-secrets-injector at %s", syncTime.Format(time.RFC3339))
+		syncMsg := fmt.Sprintf("Synced by komodo-secrets-sync at %s", syncTime.Format(time.RFC3339))
 		err := r.kClient.UpsertVariable(ctx, secret.Key, secret.Value, syncMsg, true)
 		if err != nil {
 			slog.Error("Failed to sync secret", "key", secret.Key, "error", err)

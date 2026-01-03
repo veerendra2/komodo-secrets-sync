@@ -74,7 +74,7 @@ func (c *bitwardenClient) Dump(ctx context.Context) (*Dump, error) {
 	return &secretsDump, nil
 }
 
-func (c *bitwardenClient) Get(ctx context.Context, secret_id string) (string, error) {
+func (c *bitwardenClient) Get(ctx context.Context, id string) (string, error) {
 	type result struct {
 		value string
 		err   error
@@ -85,7 +85,7 @@ func (c *bitwardenClient) Get(ctx context.Context, secret_id string) (string, er
 	// Bitwarden SDK doesn't support context natively, so we run the SDK call in a goroutine
 	// and use select to handle context cancellation/timeout while waiting for the result
 	go func() {
-		secret, err := c.bwClient.Secrets().Get(secret_id)
+		secret, err := c.bwClient.Secrets().Get(id)
 		if err != nil {
 			resultChan <- result{"", err}
 			return

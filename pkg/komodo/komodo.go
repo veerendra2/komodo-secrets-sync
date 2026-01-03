@@ -29,11 +29,9 @@ type Config struct {
 type Client interface {
 	DeleteVariable(ctx context.Context, name string) error
 	UpdateVariableDescription(ctx context.Context, name string, description string) error
-	UpdateVariableIsSecret(ctx context.Context, name string, is_secret bool) error
+	UpdateVariableIsSecret(ctx context.Context, name string, isSecret bool) error
 	UpdateVariableValue(ctx context.Context, name string, value string) error
-	UpsertVariable(ctx context.Context, name string, value string, description string, is_secret bool) error
-
-	doRequest(ctx context.Context, typ string, params any) error
+	UpsertVariable(ctx context.Context, name string, value string, description string, isSecret bool) error
 }
 
 type client struct {
@@ -79,7 +77,10 @@ func (c *client) doRequest(ctx context.Context, typ string, params any) error {
 		}
 	}()
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Warn("Failed to read response body", "error", err)
+	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("komodo API error: status=%d body=%s", resp.StatusCode, respBody)
 	}
@@ -87,20 +88,20 @@ func (c *client) doRequest(ctx context.Context, typ string, params any) error {
 	return nil
 }
 
-func (c *client) UpdateVariableIsSecret(ctx context.Context, name string, is_secret bool) error {
+func (c *client) UpdateVariableIsSecret(ctx context.Context, name string, isSecret bool) error {
 	params := UpdateVariableIsSecret{
 		Name:     name,
-		IsSecret: is_secret,
+		IsSecret: isSecret,
 	}
 	return c.doRequest(ctx, WriteUpdateVariableIsSecret, params)
 }
 
-func (c *client) UpsertVariable(ctx context.Context, name string, value string, description string, is_secret bool) error {
+func (c *client) UpsertVariable(ctx context.Context, name string, value string, description string, isSecret bool) error {
 	params := CreateVariable{
 		Name:        name,
 		Value:       value,
 		Description: description,
-		IsSecret:    is_secret,
+		IsSecret:    isSecret,
 	}
 
 	err := c.doRequest(ctx, WriteCreateVariable, params)
@@ -113,9 +114,9 @@ func (c *client) UpsertVariable(ctx context.Context, name string, value string, 
 				return fmt.Errorf("error while updating existing variable description: %w", err)
 			}
 
-			err = c.UpdateVariableIsSecret(ctx, name, is_secret)
+			err = c.UpdateVariableIsSecret(ctx, name, isSecret)
 			if err != nil {
-				return fmt.Errorf("error while updating existing variable is_secret: %w", err)
+				return fmt.Errorf("error while updating existing variable isSecret: %w", err)
 			}
 
 			err = c.UpdateVariableValue(ctx, name, value)
