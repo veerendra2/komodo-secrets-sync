@@ -1,0 +1,20 @@
+---
+name: komodo-secrets-sync
+services:
+  komodo-secrets-sync:
+    image: komodo-secrets-sync:latest
+    container_name: komodo-secrets-sync
+    environment:
+      # Komodo Configuration
+      KOMODO_API_KEY: ${KOMODO_API_KEY}
+      KOMODO_API_SECRET: ${KOMODO_API_SECRET}
+      KOMODO_URL: ${KOMODO_URL}
+
+      # Bitwarden Secrets Manager Configuration
+      BW_ACCESS_TOKEN: ${BW_ACCESS_TOKEN}
+      BW_ORGANIZATION_ID: ${BW_ORGANIZATION_ID}
+      BW_PROJECT_ID: ${BW_PROJECT_ID}
+    command:
+      - bitwarden
+    restart: unless-stopped
+    hostname: komodo-secrets-sync

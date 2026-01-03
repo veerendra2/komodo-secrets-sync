@@ -1,14 +1,17 @@
-FROM golang:1.25.4 AS BUILDER
+FROM golang:1.25.5 AS builder
 WORKDIR /app
-RUN curl -sL https://taskfile.dev/install.sh | sh
+RUN curl -sL https://taskfile.dev/install.sh | sh \
+  && apt update && apt install -y musl-tools
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN /app/bin/task build
 
-FROM alpine:3.22.2
-RUN apk update && apk add --no-cache ca-certificates
+FROM debian:13.2-slim
+RUN apt update \
+    && apt install -y ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /
-COPY --from=BUILDER /app/dist/your-app-name .
+COPY --from=builder /app/dist/komodo-secrets-sync .
 USER nobody
-ENTRYPOINT ["/your-app-name"]
+ENTRYPOINT ["/komodo-secrets-sync"]

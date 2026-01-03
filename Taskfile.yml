@@ -3,8 +3,8 @@ version: "3"
 silent: true
 
 vars:
-  MAIN_FILE: /path/to/main.go
-  APP_NAME: your-app-name
+  MAIN_FILE: cmd/main.go
+  APP_NAME: komodo-secrets-sync
   GOPATH_BIN:
     sh: echo "$(go env GOPATH)/bin"
   BRANCH:
@@ -17,10 +17,14 @@ vars:
     sh: git rev-parse HEAD
   VERSION:
     sh: git describe --tags --always
+  COMPILER_CC: '{{if eq OS "linux"}}musl-gcc{{else if eq OS "darwin"}}clang{{end}}'
+  COMPILER_CXX: '{{if eq OS "darwin"}}clang++{{end}}'
 
 env:
   GOBIN: "{{.GOPATH_BIN }}"
-  CGO_ENABLED: 0
+  CGO_ENABLED: 1
+  CC: "{{.COMPILER_CC}}"
+  CXX: "{{.COMPILER_CXX}}"
 
 tasks:
   run:
@@ -62,34 +66,21 @@ tasks:
 
   build:
     desc: "Build the application binary for the current platform"
+    vars:
+      LINUX_LDFLAGS: >-
+        {{if eq OS "linux"}}
+        -linkmode external -extldflags '-static -Wl,-unresolved-symbols=ignore-all'
+        {{end}}
     deps:
       - vet
     cmd: |
-      go build -ldflags "\
+      go build -ldflags "{{.LINUX_LDFLAGS}} \
         -X github.com/veerendra2/gopackages/version.Version={{.VERSION}} \
         -X github.com/veerendra2/gopackages/version.Revision={{.REVISION}} \
         -X github.com/veerendra2/gopackages/version.Branch={{.BRANCH}} \
         -X github.com/veerendra2/gopackages/version.BuildUser={{.BUILD_USER}} \
         -X github.com/veerendra2/gopackages/version.BuildDate={{.BUILD_TIME}}" \
         -o dist/{{.APP_NAME}} {{.MAIN_FILE}}
-
-  build-platforms:
-    desc: "Build the application binaries for multiple platforms and architectures"
-    deps:
-      - vet
-    cmds:
-      - for:
-          matrix:
-            OS: ["linux", "darwin"]
-            ARCH: ["amd64", "arm64"]
-        cmd: |
-          GOOS={{.ITEM.OS}} GOARCH={{.ITEM.ARCH}} go build -ldflags "\
-            -X github.com/veerendra2/gopackages/version.Version={{.VERSION}} \
-            -X github.com/veerendra2/gopackages/version.Revision={{.REVISION}} \
-            -X github.com/veerendra2/gopackages/version.Branch={{.BRANCH}} \
-            -X github.com/veerendra2/gopackages/version.BuildUser={{.BUILD_USER}} \
-            -X github.com/veerendra2/gopackages/version.BuildDate={{.BUILD_TIME}}" \
-            -o dist/{{.APP_NAME}}-{{.ITEM.OS}}-{{.ITEM.ARCH}} {{.MAIN_FILE}}
 
   build-docker:
     desc: "Build Docker image"

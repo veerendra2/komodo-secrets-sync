@@ -1,43 +1,105 @@
-# Go Project Template
+# Komodo Secrets Sync
 
-> Other references
->
-> - https://github.com/thockin/go-build-template/tree/master
-> - https://peter.bourgon.org/go-best-practices-2016/
+> 🚧 _Currently in beta._
 
-## Getting Started
+Sync secrets from a secrets manager into [Komodo](https://github.com/moghtech/komodo) (Currently supports [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/))
 
-Follow below steps after creating a new repository from this template
+> **Why?** [Komodo](https://github.com/moghtech/komodo) doesn't natively support fetching secrets from external secrets managers. If you manage your Docker Compose stacks in a GitOps workflow and want to automatically sync secrets from external secrets managers (like HashiCorp Vault, Bitwarden Secrets Manager, etc.) to Komodo, this tool is for you! (Alternatively, you can add secrets manually in the Komodo UI 😉)
 
-- [ ] **Initialize Go module:**
+![Komdo Secrets Sync](./docs/assets/komodo-secrets-sync.png)
 
-  ```bash
-  go mod init github.com/YOUR_USERNAME/YOUR_PROJECT_NAME
-  go mod tidy
-  ```
+## Features
 
-- [ ] **Update app name** in:
+- Continuously monitors and syncs secrets at configurable intervals
+- Detects changes using hashing (SHA-256)
+- Only syncs modified secrets, not everything
 
-  - [ ] [Taskfile.yml](./Taskfile.yml) - `APP_NAME` variable
-  - [ ] [Dockerfile](./Dockerfile) - Binary name and labels
-  - [ ] [main.go](./main.go) - `appName` constant
-  - [ ] [.goreleaser.yml](./.goreleaser.yml) - `project_name` and `binary` name
-  - [ ] [README.md](./README.md) - Title and description
+## Supported Secret Managers
 
-- [ ] **Update main file location** (if not using root `main.go`):
+| Secret Manager                                                               | Status       |
+| ---------------------------------------------------------------------------- | ------------ |
+| [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/) | ✅ Supported |
+| [HashiCorp Vault](https://www.vaultproject.io/)                              | 🚧 Planning  |
 
-  - [ ] [Taskfile.yml](./Taskfile.yml) - `MAIN_FILE` variable
-  - [ ] [.goreleaser.yml](./.goreleaser.yml) - `main` field under `builds`
+## Quick Start
 
-- [ ] **Configure Homebrew release** (optional):
+### Usage
 
-  > **Note:** GitHub's default `GITHUB_TOKEN` has limited permissions for tap repositories. See [GoReleaser docs](https://goreleaser.com/errors/resource-not-accessible-by-integration/).
+```
+Usage: komodo-secrets-sync --komodo-url=STRING --komodo-api-key=STRING --komodo-api-secret=STRING <command> [flags]
 
-  - [ ] Add `RELEASE_TOKEN` in repository secrets and update in [release workflow](./.github/workflows/release.yml)
-  - [ ] Update [release workflow](./.github/workflows/release.yml) to use the new token
-  - [ ] Update [.goreleaser.yml](./.goreleaser.yml) `brews` section with your tap repository details
+Sync secrets from a secrets manager into Komodo.
 
-- [ ] **Clean up:** Delete this checklist and update README with project documentation
+Flags:
+  -h, --help                        Show context-sensitive help.
+      --komodo-url=STRING           Komodo URL ($KOMODO_URL)
+      --komodo-api-key=STRING       Komodo API key ($KOMODO_API_KEY)
+      --komodo-api-secret=STRING    Komodo API secret ($KOMODO_API_SECRET)
+      --reconcile-interval=5m       Reconcile interval ($RECONCILE_INTERVAL)
+      --reconcile-timeout=1m        Reconcile timeout ($RECONCILE_TIMEOUT)
+      --log-format="json"           Set the output format of the logs. Must be "console" or "json" ($LOG_FORMAT).
+      --log-level=INFO              Set the log level. Must be "DEBUG", "INFO", "WARN" or "ERROR" ($LOG_LEVEL).
+      --log-add-source              Whether to add source file and line number to log records ($LOG_ADD_SOURCE).
+      --version                     Print version information and exit
+
+Secret Managers
+  bitwarden    Bitwarden Secrets Manager.
+
+Run "komodo-secrets-sync <command> --help" for more information on a command.
+```
+
+### Get Komodo API Access Key
+
+1. Login to Komodo UI as admin → Navigate to **Settings**
+2. Click on **Profile** tab
+3. Click **Create New** to generate API keys as shown below:
+
+![API Keys](./docs/assets/komodo-api-key.png)
+
+### Get Your Secret Manager Access Tokens
+
+This tool currently supports **Bitwarden Secrets Manager**. Follow the setup guide to get your access tokens:
+
+- **[Bitwarden Setup Guide](./docs/Bitwarden.md)**
+
+### Docker Compose Deployment
+
+Export environment variables with your credentials:
+
+```bash
+# Komodo Configuration
+export KOMODO_API_KEY=<your-komodo-api-key>
+export KOMODO_API_SECRET=<your-komodo-api-secret>
+export KOMODO_URL=<your-komodo-url>
+
+# Bitwarden Secrets Manager Configuration
+export BW_ACCESS_TOKEN=<your-access-token>
+export BW_ORGANIZATION_ID=<your-org-id>
+export BW_PROJECT_ID=<your-project-id>
+```
+
+```yaml
+---
+name: komodo-secrets-sync
+services:
+  komodo-secrets-sync:
+    image: veerendra2/komodo-secrets-sync:latest
+    container_name: komodo-secrets-sync
+    environment:
+      # Komodo Configuration
+      KOMODO_API_KEY: ${KOMODO_API_KEY}
+      KOMODO_API_SECRET: ${KOMODO_API_SECRET}
+      KOMODO_URL: ${KOMODO_URL}
+
+      # Bitwarden Secrets Manager Configuration
+      BW_ACCESS_TOKEN: ${BW_ACCESS_TOKEN}
+      BW_ORGANIZATION_ID: ${BW_ORGANIZATION_ID}
+      BW_PROJECT_ID: ${BW_PROJECT_ID}
+    command:
+      - bitwarden
+    restart: unless-stopped
+    hostname: komodo-secrets-sync
+```
 
 ## Build & Test
 
@@ -49,17 +111,16 @@ _Install Taskfile: [Installation Guide](https://taskfile.dev/docs/installation)_
 # Available tasks
 task --list
 task: Available tasks for this project:
-* all:                   Run comprehensive checks: format, lint, security and test
-* build:                 Build the application binary for the current platform
-* build-docker:          Build Docker image
-* build-platforms:       Build the application binaries for multiple platforms and architectures
-* fmt:                   Formats all Go source files
-* install:               Install required tools and dependencies
-* lint:                  Run static analysis and code linting using golangci-lint
-* run:                   Runs the main application
-* security:              Run security vulnerability scan
-* test:                  Runs all tests in the project      (aliases: tests)
-* vet:                   Examines Go source code and reports suspicious constructs
+* all:                Run comprehensive checks: format, lint, security and test
+* build:              Build the application binary for the current platform
+* build-docker:       Build Docker image
+* fmt:                Formats all Go source files
+* install:            Install required tools and dependencies
+* lint:               Run static analysis and code linting using golangci-lint
+* run:                Runs the main application
+* security:           Run security vulnerability scan
+* test:               Runs all tests in the project      (aliases: tests)
+* vet:                Examines Go source code and reports suspicious constructs
 ```
 
 - Build with [goreleaser](https://goreleaser.com/)
