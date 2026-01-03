@@ -2,7 +2,7 @@
 
 Sync secrets from a secrets manager into [Komodo](https://github.com/moghtech/komodo) (Currently supports [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/))
 
-> **Why?** [Komodo](https://github.com/moghtech/komodo) doesn't natively support fetching secrets from external secrets managers. If you manage your Docker Compose stacks in a GitOps workflow and want to automatically sync secrets from external secrets managers (like HashiCorp Vault, Bitwarden Secrets Manager, etc.) to Komodo, this tool is for you! (Alternatively, you can add secrets to Komodo manually 😉)
+> **Why?** [Komodo](https://github.com/moghtech/komodo) doesn't natively support fetching secrets from external secrets managers. If you manage your Docker Compose stacks in a GitOps workflow and want to automatically sync secrets from external secrets managers (like HashiCorp Vault, Bitwarden Secrets Manager, etc.) to Komodo, this tool is for you! (Alternatively, you can add secrets manually in the Komodo UI 😉)
 
 ![Komdo Secrets Injector](./docs/assets/komodo-secrets-sync.png)
 
