@@ -47,6 +47,26 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: false
 
+  goreleaser-test:
+    name: GoReleaser
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: --snapshot --clean
+
   # run-tests:
   #   name: Run Tests
   #   runs-on: ubuntu-slim

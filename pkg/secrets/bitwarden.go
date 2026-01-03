@@ -18,43 +18,27 @@ type BitwardenConfig struct {
 
 type bitwardenClient struct {
 	organizationId string
-	ProjectId      string
+	projectId      string
 
 	bwClient sdk.BitwardenClientInterface
 }
 
-func (c *bitwardenClient) FetchAll(ctx context.Context) (*SecretsCollection, error) {
-	type result struct {
-		resp *sdk.SecretsSyncResponse
-		err  error
-	}
-
-	resultChan := make(chan result, 1)
-
-	// Bitwarden SDK doesn't support context natively, so we run the SDK call in a goroutine
-	// and use select to handle context cancellation/timeout while waiting for the result
-	go func() {
-		resp, err := c.bwClient.Secrets().Sync(c.organizationId, nil)
-		resultChan <- result{resp, err}
-	}()
-
-	var syncResp *sdk.SecretsSyncResponse
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case res := <-resultChan:
-		if res.err != nil {
-			return nil, res.err
-		}
-		syncResp = res.resp
+// FetchAll retrieves all secrets from Bitwarden.
+// Note: The Bitwarden SDK doesn't support context cancellation, so the ctx parameter
+// is accepted for interface compatibility but not used. SDK calls will run to completion.
+func (c *bitwardenClient) FetchAll(_ context.Context) (*SecretsCollection, error) {
+	resp, err := c.bwClient.Secrets().Sync(c.organizationId, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	// Convert to our Secret format
 	var secretsCollection SecretsCollection
-	for _, bwSecret := range syncResp.Secrets {
-		// Filter secrets to include only those from the specified project.
-		// The SDK already limits results based on access token permissions.
-		if bwSecret.ProjectID != nil && *bwSecret.ProjectID == c.ProjectId {
+	for _, bwSecret := range resp.Secrets {
+		// Filter secrets by project ID
+		// Note: Sync() already returns only secrets the access token has permission to access,
+		// but we filter by project ID to ensure we only sync secrets from the specified project
+		if bwSecret.ProjectID != nil && *bwSecret.ProjectID == c.projectId {
 			secretsCollection.Secrets = append(secretsCollection.Secrets, Secret{
 				Key:   bwSecret.Key,
 				Note:  bwSecret.Note,
@@ -66,31 +50,23 @@ func (c *bitwardenClient) FetchAll(ctx context.Context) (*SecretsCollection, err
 	return &secretsCollection, nil
 }
 
-func (c *bitwardenClient) Get(ctx context.Context, id string) (string, error) {
-	type result struct {
-		value string
-		err   error
+// Get retrieves a single secret by ID.
+// Note: The Bitwarden SDK doesn't support context cancellation, so the ctx parameter
+// is accepted for interface compatibility but not used. SDK calls will run to completion.
+func (c *bitwardenClient) Get(_ context.Context, id string) (string, error) {
+	secret, err := c.bwClient.Secrets().Get(id)
+	if err != nil {
+		return "", err
 	}
+	return secret.Value, nil
+}
 
-	resultChan := make(chan result, 1)
-
-	// Bitwarden SDK doesn't support context natively, so we run the SDK call in a goroutine
-	// and use select to handle context cancellation/timeout while waiting for the result
-	go func() {
-		secret, err := c.bwClient.Secrets().Get(id)
-		if err != nil {
-			resultChan <- result{"", err}
-			return
-		}
-		resultChan <- result{secret.Value, nil}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return "", ctx.Err()
-	case res := <-resultChan:
-		return res.value, res.err
+// Close cleans up the Bitwarden client resources
+func (c *bitwardenClient) Close() error {
+	if c.bwClient != nil {
+		c.bwClient.Close()
 	}
+	return nil
 }
 
 func NewBitwarden(cfg BitwardenConfig) (Client, error) {
@@ -116,7 +92,7 @@ func NewBitwarden(cfg BitwardenConfig) (Client, error) {
 
 	return &bitwardenClient{
 		organizationId: cfg.OrgId,
-		ProjectId:      cfg.ProjectId,
+		projectId:      cfg.ProjectId,
 		bwClient:       bwClient,
 	}, nil
 }

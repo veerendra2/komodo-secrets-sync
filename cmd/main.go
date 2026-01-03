@@ -66,6 +66,13 @@ func main() {
 		kongCtx.Exit(1)
 	}
 
+	// Ensure client is closed on exit
+	defer func() {
+		if err := smClient.Close(); err != nil {
+			slog.Error("Failed to close secrets manager client", "error", err)
+		}
+	}()
+
 	kClient, err := komodo.NewClient(cli.Komodo)
 	if err != nil {
 		slog.Error("Failed to create Komodo client", "error", err)
