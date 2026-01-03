@@ -21,6 +21,7 @@ type Reconciler struct {
 	smClient secrets.Client
 	kClient  komodo.Client
 
+	// TODO sync.Map
 	secretsCache map[string]string
 }
 
@@ -53,14 +54,14 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	defer cancel()
 
 	// Get all secrets
-	dump, err := r.smClient.Dump(ctx)
+	secretsCollection, err := r.smClient.FetchAll(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Find changed secrets by comparing hash
 	var modified []secrets.Secret
-	for _, secret := range dump.Secrets {
+	for _, secret := range secretsCollection.Secrets {
 		currentHash := hash(secret.Value)
 		cachedHash, exists := r.secretsCache[secret.Key]
 
@@ -70,7 +71,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		}
 	}
 
-	slog.Info("Reconciliation scan", "total", len(dump.Secrets), "modified", len(modified))
+	slog.Info("Reconciliation scan", "total", len(secretsCollection.Secrets), "modified", len(modified))
 
 	// Sync modified secrets to Komodo
 	syncTime := time.Now().UTC()

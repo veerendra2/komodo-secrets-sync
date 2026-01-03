@@ -21,7 +21,6 @@ vars:
 env:
   GOBIN: "{{.GOPATH_BIN }}"
   CGO_ENABLED: 1
-  CGO_LDFLAGS: -Wl,--no-as-needed
   CC:
     sh: |
       case "{{.OS}}" in

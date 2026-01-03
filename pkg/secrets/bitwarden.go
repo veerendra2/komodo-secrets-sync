@@ -2,7 +2,6 @@ package secrets
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -14,19 +13,19 @@ type BitwardenConfig struct {
 	IdentityURL string `name:"identity-url" help:"Identity URL" env:"BW_IDENTITY_URL" default:"vault.bitwarden.com/identity"`
 	AccessToken string `name:"access-token" help:"Access token" env:"BW_ACCESS_TOKEN" required:""`
 	OrgId       string `name:"organization-id" help:"Organization ID" env:"BW_ORGANIZATION_ID" required:""`
-	ProjectName string `name:"project-name" help:"Project name" env:"BW_PROJECT_ID" required:""`
+	ProjectId   string `name:"project-id" help:"Project ID" env:"BW_PROJECT_ID" required:""`
 }
 
 type bitwardenClient struct {
 	organizationId string
-	projectName    string
+	ProjectId      string
 
 	bwClient sdk.BitwardenClientInterface
 }
 
-func (c *bitwardenClient) Dump(ctx context.Context) (*Dump, error) {
+func (c *bitwardenClient) FetchAll(ctx context.Context) (*SecretsCollection, error) {
 	type result struct {
-		resp any
+		resp *sdk.SecretsSyncResponse
 		err  error
 	}
 
@@ -39,7 +38,7 @@ func (c *bitwardenClient) Dump(ctx context.Context) (*Dump, error) {
 		resultChan <- result{resp, err}
 	}()
 
-	var resp any
+	var syncResp *sdk.SecretsSyncResponse
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -47,31 +46,24 @@ func (c *bitwardenClient) Dump(ctx context.Context) (*Dump, error) {
 		if res.err != nil {
 			return nil, res.err
 		}
-		resp = res.resp
-	}
-
-	// Marshal and unmarshal to convert the response
-	jsonData, err := json.Marshal(resp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal sync response: %w", err)
-	}
-
-	var bwResp BitwardenSyncResponse
-	if err := json.Unmarshal(jsonData, &bwResp); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal sync response: %w", err)
+		syncResp = res.resp
 	}
 
 	// Convert to our Secret format
-	var secretsDump Dump
-	for _, bwSecret := range bwResp.Secrets {
-		secretsDump.Secrets = append(secretsDump.Secrets, Secret{
-			Key:   bwSecret.Key,
-			Note:  bwSecret.Note,
-			Value: bwSecret.Value,
-		})
+	var secretsCollection SecretsCollection
+	for _, bwSecret := range syncResp.Secrets {
+		// Filter secrets to include only those from the specified project.
+		// The SDK already limits results based on access token permissions.
+		if bwSecret.ProjectID == &c.ProjectId {
+			secretsCollection.Secrets = append(secretsCollection.Secrets, Secret{
+				Key:   bwSecret.Key,
+				Note:  bwSecret.Note,
+				Value: bwSecret.Value,
+			})
+		}
 	}
 
-	return &secretsDump, nil
+	return &secretsCollection, nil
 }
 
 func (c *bitwardenClient) Get(ctx context.Context, id string) (string, error) {
@@ -124,7 +116,7 @@ func NewBitwarden(cfg BitwardenConfig) (Client, error) {
 
 	return &bitwardenClient{
 		organizationId: cfg.OrgId,
-		projectName:    cfg.ProjectName,
+		ProjectId:      cfg.ProjectId,
 		bwClient:       bwClient,
 	}, nil
 }
