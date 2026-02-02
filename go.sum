@@ -8,5 +8,5 @@ github.com/bitwarden/sdk-go v1.0.2 h1:krk5et4sfksLDDcrYHcs8f3jL/TGcQ1EShw4CG21JS
 github.com/bitwarden/sdk-go v1.0.2/go.mod h1:RuYh+gqffp3h8wNUVWz1bvp2Pho10AFz+WIlI26iWY4=
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
 github.com/hexops/gotextdiff v1.0.3/go.mod h1:pSWU5MAI3yDq+fZBTazCSJysOMbxWL1BSow5/V2vxeg=
-github.com/veerendra2/gopackages v1.2.2 h1:pMH35yron3gMOHR/e2BVNGcG+z4vP3HpEpa3plLTWRU=
-github.com/veerendra2/gopackages v1.2.2/go.mod h1:+ZiBLm4SOULJAy35JTQLdH2lNTIy6qOs16eOjosz9Kw=
+github.com/veerendra2/gopackages v1.2.3 h1:wyXaDtJIxZL14RgexhlA07y4BUWlnPos1d/dCZpfQYI=
+github.com/veerendra2/gopackages v1.2.3/go.mod h1:q4TNEFrNh39WW4jAj7XL+l+Cd3P809cXJhOcVaKZu/4=
