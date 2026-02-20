@@ -18,6 +18,8 @@ const (
 	WriteUpdateVariableDescription = "UpdateVariableDescription"
 	WriteUpdateVariableIsSecret    = "UpdateVariableIsSecret"
 	WriteUpdateVariableValue       = "UpdateVariableValue"
+
+	ReadListSecrets = "ListSecrets"
 )
 
 type Config struct {
@@ -32,6 +34,8 @@ type Client interface {
 	UpdateVariableIsSecret(ctx context.Context, name string, isSecret bool) error
 	UpdateVariableValue(ctx context.Context, name string, value string) error
 	UpsertVariable(ctx context.Context, name string, value string, description string, isSecret bool) error
+
+	ListSecrets(ctx context.Context) error
 }
 
 type client struct {
@@ -43,9 +47,7 @@ type client struct {
 }
 
 func (c *client) doRequest(ctx context.Context, typ string, params any) error {
-	// Support only 'write' module at the moment
-	// https://docs.rs/komodo_client/latest/komodo_client/api/write/index.html
-	requestURL := strings.TrimRight(c.baseUrl.String(), "/") + "/write"
+	requestURL := strings.TrimRight(c.baseUrl.String(), "/") + "/read"
 
 	payload := Request{
 		Type:   typ,
@@ -66,7 +68,7 @@ func (c *client) doRequest(ctx context.Context, typ string, params any) error {
 	req.Header.Set("X-Api-Key", c.apiKey)
 	req.Header.Set("X-Api-Secret", c.apiSecret)
 
-	slog.Debug("Sending HTTP request...", "request_url", requestURL, "payload", payload)
+	slog.Debug("Sending HTTP request", "request_url", requestURL, "payload", body)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -85,7 +87,18 @@ func (c *client) doRequest(ctx context.Context, typ string, params any) error {
 		return fmt.Errorf("komodo API error: status=%d body=%s", resp.StatusCode, respBody)
 	}
 
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, respBody, "", "  "); err == nil {
+		slog.Info("Komodo API response", "status", resp.StatusCode, "body", prettyJSON.String())
+	} else {
+		slog.Info("Komodo API response", "status", resp.StatusCode, "body", string(respBody))
+	}
+
 	return nil
+}
+
+func (c *client) ListSecrets(ctx context.Context) error {
+	return c.doRequest(ctx, ReadListSecrets, nil)
 }
 
 func (c *client) UpdateVariableIsSecret(ctx context.Context, name string, isSecret bool) error {

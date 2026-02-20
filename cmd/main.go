@@ -79,9 +79,11 @@ func main() {
 		kongCtx.Exit(1)
 	}
 
-	r := reconciler.New(cli.Reconciler, smClient, kClient)
-	if err := r.Run(ctx); err != nil {
-		slog.Warn("Reconciliation exited", "error", err)
-		kongCtx.Exit(1)
-	}
+	kClient.ListSecrets(ctx)
+
+	// r := reconciler.New(cli.Reconciler, smClient, kClient)
+	// if err := r.Run(ctx); err != nil {
+	// 	slog.Warn("Reconciliation exited", "error", err)
+	// 	kongCtx.Exit(1)
+	// }
 }

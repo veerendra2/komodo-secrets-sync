@@ -1,13 +1,8 @@
 # Bitwarden Secrets Manager Setup
 
-This guide shows you how to configure komodo-secrets-injector with Bitwarden Secrets Manager.
+This guide shows you how to configure komodo-secrets-sync with Bitwarden Secrets Manager.
 
 > For more information, check [Secrets Manager Overview](https://bitwarden.com/help/secrets-manager-overview/)
-
-## Prerequisites
-
-- Bitwarden account with Secrets Manager enabled
-- Komodo API credentials (see [README](../README.md#get-komodo-api-access-key))
 
 ## Setup Steps
 

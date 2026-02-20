@@ -14,8 +14,10 @@ import (
 )
 
 type Config struct {
-	Interval time.Duration `name:"interval" help:"Reconcile interval" env:"INTERVAL" default:"5m"`
-	Timeout  time.Duration `name:"timeout" help:"Reconcile timeout" env:"TIMEOUT" default:"1m"`
+	Interval      time.Duration `name:"interval" help:"Reconcile interval" env:"INTERVAL" default:"5m"`
+	Timeout       time.Duration `name:"timeout" help:"Reconcile timeout" env:"TIMEOUT" default:"1m"`
+	PruneInterval time.Duration `name:"prune-interval" help:"Prune interval for removing stale secrets" env:"PRUNE_INTERVAL" default:"24h"`
+	Prune         bool          `name:"prune" help:"Enable automatic pruning of secrets not in source" env:"PRUNE_ENABLED" default:"true"`
 }
 
 type Reconciler struct {
@@ -30,6 +32,8 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	slog.Info("Starting reconciliation loop",
 		"interval", r.cfg.Interval.String(),
 		"timeout", r.cfg.Timeout.String(),
+		"prune_enabled", r.cfg.Prune,
+		"prune_interval", r.cfg.PruneInterval.String(),
 	)
 
 	// Run initial reconciliation immediately on startup
@@ -40,6 +44,12 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	ticker := time.NewTicker(r.cfg.Interval)
 	defer ticker.Stop()
 
+	var pruneTicker *time.Ticker
+	if r.cfg.Prune {
+		pruneTicker = time.NewTicker(r.cfg.PruneInterval)
+		defer pruneTicker.Stop()
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -48,6 +58,12 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		case <-ticker.C:
 			if err := r.reconcile(ctx); err != nil {
 				slog.Error("Reconciliation failed", "error", err)
+			}
+		case <-pruneTicker.C:
+			if r.cfg.Prune {
+				if err := r.prune(ctx); err != nil {
+					slog.Error("Pruning failed", "error", err)
+				}
 			}
 		}
 	}
@@ -102,6 +118,11 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	if len(modified) > 0 {
 		slog.Info("Sync completed", "synced", successCount, "failed", len(modified)-successCount)
 	}
+
+	return nil
+}
+
+func (r *Reconciler) prune(ctx context.Context) error {
 
 	return nil
 }
